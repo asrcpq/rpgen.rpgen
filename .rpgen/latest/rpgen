@@ -1,0 +1,91 @@
+#!/bin/bash
+set -e
+
+rpgen_rsync() {
+	if [ -f .exclude_list ]; then
+		exclude_file=".exclude_list"
+	fi
+	rsync \
+		--quiet \
+		-av \
+		--exclude=".rpgen" \
+		--exclude-from="$exclude_file" \
+		"${PWD}/" "$1"
+}
+
+rpgen_init() {
+	[ -d .rpgen ] && rm -r .rpgen
+	mkdir .rpgen
+	mkdir .rpgen/rp
+	rpgen_rsync .rpgen/latest
+}
+
+rpgen_project_check() {
+	if [ ! -d .rpgen ]; then
+		echo "Not a rpgen project"
+		exit 1
+	fi
+}
+
+rpgen_commit() {
+	rpgen_project_check
+	rpgen_rsync .rpgen/latest_new
+	cd .rpgen/latest_new
+	diff -Naur . ../latest > ../rp/tmp.patch || ret=$?
+	cd ../..
+	diffstat .rpgen/rp/tmp.patch
+	if [ -z ${ret+x} ]; then
+		echo "No difference"
+		rm .rpgen/rp/tmp.patch
+		rm -r .rpgen/latest_new
+	elif [ "$ret" == "1" ]; then
+		mv .rpgen/rp/tmp.patch .rpgen/rp/"$(date +%s)".patch
+		rm -r .rpgen/latest
+		mv .rpgen/latest_new .rpgen/latest
+	fi
+}
+
+rpgen_checkout_latest() {
+	rsync --quiet --exclude=.rpgen --delete -av .rpgen/latest/ $PWD/
+}
+
+rpgen_checkout() {
+	rpgen_project_check
+	if [ -z "$@" ]; then
+		checkout_count=0
+	else
+		checkout_count="$1"
+	fi
+	rpgen_checkout_latest
+	ls .rpgen/rp | \
+		sort -r | \
+		head -$checkout_count | \
+		while read patch_filename; do
+			patch -s -p0 < .rpgen/rp/"$patch_filename"
+		done
+}
+
+# currently diff does not detect exclude_list
+rpgen_diff() {
+	diff .rpgen/latest .
+}
+
+# currently diff does not detect exclude_list
+rpgen_diffstat() {
+	diff .rpgen/latest . | diffstat
+}
+
+rpgen_toolcheck() {
+	which diffstat
+	which rsync
+	which diff
+}
+
+case $1 in
+	"init") rpgen_init "${@:2}";;
+	"commit") rpgen_commit "${@:2}";;
+	"checkout") rpgen_checkout "${@:2}";;
+	"diff") rpgen_diff "${@:2}";;
+	"diffstat") rpgen_diffstat "${@:2}";;
+	"toolcheck") rpgen_toolcheck "${@:2}";;
+esac
