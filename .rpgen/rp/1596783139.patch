@@ -1,0 +1,23 @@
+diff -Naur ./rpgen ../latest/rpgen
+--- ./rpgen	2020-08-07 06:52:15.610353095 +0000
++++ ../latest/rpgen	2020-08-07 06:51:24.894577982 +0000
+@@ -93,13 +93,18 @@
+ 
+ rpgen_push() {
+ 	remote_dir="$(cat .rpgen/remote/"$1")"
+-	results="$(diff --brief .rpgen/rp "${remote_dir}/rp" | \
++	results="$( \
++		diff --brief .rpgen/rp "${remote_dir}/rp" | \
+ 		egrep -v '^Only in .rpgen/')"
+ 	if [ -n results ]; then
+ 		echo "$results"
+ 		echo "Conflict delected, exit"
+ 	else
+ 		echo "Append Mode, auto continue"
++		prompt="y"
++	fi
++	if [ "$prompt" != "y" ]; then
++	  exit 1
+ 	fi
+ 	rsync -avzP .rpgen/rp/ "$remote_dir"/rp/
+ 	rsync -avzP --delete .rpgen/latest/ "$remote_dir"/latest/

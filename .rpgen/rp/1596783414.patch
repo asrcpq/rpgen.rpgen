@@ -1,0 +1,18 @@
+diff -Naur ./rpgen ../latest/rpgen
+--- ./rpgen	2020-08-07 06:53:46.901949092 +0000
++++ ../latest/rpgen	2020-08-07 06:52:15.610353095 +0000
+@@ -93,14 +93,11 @@
+ 
+ rpgen_push() {
+ 	remote_dir="$(cat .rpgen/remote/"$1")"
+-	set +e
+ 	results="$(diff --brief .rpgen/rp "${remote_dir}/rp" | \
+ 		egrep -v '^Only in .rpgen/')"
+-	set -e
+ 	if [ -n results ]; then
+ 		echo "$results"
+ 		echo "Conflict delected, exit"
+-		exit 1
+ 	else
+ 		echo "Append Mode, auto continue"
+ 	fi

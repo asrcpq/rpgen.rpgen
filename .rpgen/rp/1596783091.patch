@@ -1,0 +1,32 @@
+diff -Naur ./rpgen ../latest/rpgen
+--- ./rpgen	2020-08-07 06:51:24.894577982 +0000
++++ ../latest/rpgen	2020-08-07 06:39:10.905799686 +0000
+@@ -95,10 +95,16 @@
+ 	remote_dir="$(cat .rpgen/remote/"$1")"
+ 	results="$( \
+ 		diff --brief .rpgen/rp "${remote_dir}/rp" | \
+-		egrep -v '^Only in .rpgen/')"
+-	if [ -n results ]; then
+-		echo "$results"
+-		echo "Conflict delected, exit"
++		egrep -v '^Only in .rpgen/' | \
++		awk '{print $1}' | \
++		sort -u)"
++	echo "$results"
++	if ( echo "$results" | grep File ); then
++		echo "!!OVERWRITE MODE!!"
++		read -p "Are you sure you want to continue? <y/N> " prompt
++	elif ( echo "$results" | grep Only ); then
++		echo "Rebase Mode"
++		read -p "Are you sure you want to continue? <y/N> " prompt
+ 	else
+ 		echo "Append Mode, auto continue"
+ 		prompt="y"
+@@ -118,6 +124,6 @@
+ 	"diff") rpgen_diff "${@:2}";;
+ 	"diffstat") rpgen_diffstat "${@:2}";;
+ 	"toolcheck") rpgen_toolcheck "${@:2}";;
+-	"pull") ;; # rpgen_pull "${@:2}";; Not implemented
++	"pull") rpgen_pull "${@:2}";;
+ 	"push") rpgen_push "${@:2}";;
+ esac
